@@ -1,65 +1,70 @@
-let mask;
-let canv;
+//---------- Params ----------//
+const canvasSize = 800;   // Canvas width/height in pixels
+const gridCount = 50;     // No. of blocks across the whole canvas
+const spacing = 3;        // Spacing between block outlines
+const weight = 0.1;       // Block outline stroke weight
+const alpha = 150;        // Fill alpha for each block
+const alphaCutoff = 230;  // Point at which a block is 'filled'
+const gravity = 0.4;      // Particle gravity
 
-const canvasSize = 800;
-const gridCount = 50;
-const spacing = 0;
-const weight = 0.1;
-const alpha = 50;
-const gravity = 0.4;
+const dayStart = 6;       // Hour day starts
+const dayEnd = 18;        // Hour day ends
 
-const dayStart = 6;
-const dayEnd = 18;
+const tournSize = 50;     // Sample size when picking the next pixel
 
+//---------- Setup ----------//
 const blockStep = canvasSize / gridCount;
 const blockSize = blockStep - spacing;
 
-const blocks = []
+anims = [];
+particles = [];
 
-let img;
+let mask, outline;
+const blockIndices = [];
 
 function preload() {
-  img = loadImage('./africa.jpg');
+  mask = loadImage('./africa.jpg');
+  outline = loadImage('./outline4.png');
 }
 
 let map;
 
 function setup() {
-  img.resize(gridCount, gridCount);
+  mask.resize(gridCount, gridCount);
+  mask.loadPixels();
+  outline.resize(canvasSize, canvasSize);
 
   createCanvas(canvasSize, canvasSize);
   map = createGraphics(gridCount, gridCount);
   noSmooth();
+  blendMode(ADD);
 
-  for (let x = 0; x < gridCount; x += 4) {
-    for (let y = 0; y < gridCount; y += 4) {
-      if (img.get(x, y)[0] == 255) {
-        // map.stroke(255, random(0, 255));
-        map.stroke(255);
-        map.strokeWeight(1);
-        map.point(x-0.5, y-0.5);
+  let numBlocks = 0;
+  map.noStroke();
+  map.fill(255);
+  for (let x = 0; x < gridCount; x++) {
+    for (let y = 0; y < gridCount; y++) {
+      if (mask.get(x, y)[0] == 255) {
+        // map.fill(255, random(0, 255));
+        // map.fill(255, 5);
+        // map.rect(x, y, 1, 1);
+        blockIndices.push(x + y*gridCount);
+        numBlocks++;
       }
     }
   }
 
+  console.log("TOTAL NO. OF BLOCKS:", numBlocks);
+
   rectMode(CORNER);
   textAlign(LEFT, TOP);
-
-  for (let x = 0; x < gridCount; x++) {
-    for (let y = 0; y < gridCount; y++) {
-      blocks.push(null);
-    }
-  }
 }
-
-anims = [];
-particles = [];
 
 function draw() {
   clear();
 
-  // image(img, 0, 0);
   image(map, 0, 0, canvasSize, canvasSize);
+  image(outline, 0, 0);
 
   //---------- Get time ----------//
   const date = new Date();
@@ -77,7 +82,9 @@ function draw() {
   for (let x = 0; x < gridCount; x++) {
     for (let y = 0; y < gridCount; y++) {
       // fill(255, alpha);
-      rect(x * blockStep, y * blockStep, blockSize, blockSize);
+      if (mask.pixels[(x + y*gridCount) * 4] == 255) {
+        rect(x * blockStep + spacing/2, y * blockStep + spacing/2, blockSize, blockSize);
+      }
     }
   }
 
@@ -87,7 +94,46 @@ function draw() {
   //---------- Render particles ---------//
   noStroke();
   fill(255);
-  particles.filter(execParticle);
+  particles = particles.filter(execParticle);
+
+  // Export canvas to file
+  // if (frameCount == 10) {
+  //   saveCanvas('output', 'png');
+  //   noLoop();
+  // }
+
+  // for (let j = 0; j < 10; j++) {
+  if (frameCount % (1) == 0) {
+    let pt = null, ptVal = 1000000;
+
+    for (let i = 0; i < tournSize && blockIndices.length > 0; i++) {
+
+      const idx = floor(random(0, blockIndices.length));
+      const newPt = blockIndices[idx];
+      const px = newPt % gridCount, py = floor(newPt / gridCount);
+
+      const newPtVal = map.get(px, py)[3];
+
+      if (newPtVal >= alphaCutoff) {
+        blockIndices.splice(idx, 1);
+        continue;
+      }
+
+      if (newPtVal < ptVal) {
+        pt = newPt;
+        ptVal = newPtVal;
+      }
+    }
+
+    if (pt != null) {
+      const px = pt % gridCount, py = floor(pt / gridCount);
+      addBlock(px, py);
+    }
+  }
+  // }
+  // if (frameCount == 120) {
+  //   addBlock = () => {};
+  // }
 
   //---------- Debug ---------//
   noStroke();
@@ -95,6 +141,7 @@ function draw() {
   rect(random(0, 40), random(0, 40), 10, 10);
 }
 
+//---------- Particle System ----------//
 const partSize = 5;
 function execParticle(p) {
     // Update
@@ -120,6 +167,7 @@ function spawnParticles(n, bx, by) {
   }
 }
 
+//---------- Animation System ----------//
 const totFrames = 40;
 const part1End = 16;
 const waitFrames = 4;
@@ -145,9 +193,11 @@ function execAnim(anim) {
     rect(bx * blockStep + blockStep/2, by * blockStep + blockStep/2, size, size);
 
   }
-  // Particles
+  // Particles + Draw pixel
   else if (frame == part2Start) {
     spawnParticles(20, bx, by);
+    map.fill(255, alpha);
+    map.rect(bx, by, 1, 1);
   }
   // Explosion
   else if (frame > part2Start) {
@@ -169,6 +219,13 @@ function execAnim(anim) {
   return true;
 }
 
+let totAdded = 0;
+function addBlock(bx, by) {
+  anims.push({ frame: 0, bx, by });
+  totAdded++;
+  console.log(totAdded);
+}
+
 function mousePressed() {
-  anims.push({ frame: 0, bx: floor(mouseX/blockStep), by: floor(mouseY/blockStep) });
+  addBlock(floor(mouseX/blockStep), floor(mouseY/blockStep))
 }
