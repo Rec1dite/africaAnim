@@ -26,7 +26,7 @@ const blockIndices = [];
 
 function preload() {
   mask = loadImage('./africa.jpg');
-  outline = loadImage('./outline4.png');
+  outline = loadImage('./outline.png');
 }
 
 let map;
