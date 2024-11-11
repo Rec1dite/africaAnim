@@ -7,37 +7,47 @@
     <title>Sketch</title>
 
     <link rel="stylesheet" type="text/css" href="style.css">
-
-    <style>
-      body {
-        background-color: #1e1e2e;
-      }
-
-      #canvasHolder {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 100vw;
-        height: 100vh;
-      }
-
-      .p5Canvas {
-        position: relative;
-        display: block;
-        border: 1px solid black;
-      }
-
-    </style>
-
+    <link rel="stylesheet" type="text/css" href="bg.css">
 
     <script src="lib/p5.min.js"></script>
   </head>
 
   <body>
     <script src="sketch.js"></script>
+    <div class="hint"><br />Press [space] to toggle quick play</div>
 
-    <div id="canvasHolder">
-      <main></main>
+    <div class="gradient-bg">
+      <svg xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="goo">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8" result="goo" />
+            <feBlend in="SourceGraphic" in2="goo" />
+            <!-- Darken -->
+            <!--
+            <feComponentTransfer>
+              <feFuncR type="linear" slope="2" />
+              <feFuncG type="linear" slope="2" />
+              <feFuncB type="linear" slope="2" />
+            </feComponentTransfer>
+            -->
+          </filter>
+        </defs>
+      </svg>
+      <div class="gradients-container">
+        <div class="g1"></div>
+        <div class="g2"></div>
+        <div class="g3"></div>
+        <div class="g4"></div>
+        <div class="g5"></div>
+        <div class="interactive"></div>
+      </div>
+    </div>
+
+    <div class="foreground">
+      <div id="canvasHolder">
+        <main></main>
+      </div>
     </div>
 
   </body>

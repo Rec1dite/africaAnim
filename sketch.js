@@ -12,6 +12,8 @@ const dayEnd = 18;        // Hour day ends
 
 const tournSize = 50;     // Sample size when picking the next pixel
 
+let quickPlay = false;
+
 //---------- Setup ----------//
 const blockStep = canvasSize / gridCount;
 const blockSize = blockStep - spacing;
@@ -71,7 +73,6 @@ function draw() {
   const hour = date.getHours();
   const minute = date.getMinutes();
   const second = date.getSeconds();
-  text(hour + ":" + minute + ":" + second + ":" + round(frameRate()), 1, 2);
 
   //---------- Draw grid ----------//
   noFill();
@@ -102,27 +103,18 @@ function draw() {
   //   noLoop();
   // }
 
-  // for (let j = 0; j < 10; j++) {
-  if (frameCount % (1) == 0) {
+  if (frameCount % (quickPlay ? 1 : 20) == 0) {
     let pt = null, ptVal = 1000000;
 
     for (let i = 0; i < tournSize && blockIndices.length > 0; i++) {
-
-      const idx = floor(random(0, blockIndices.length));
-      const newPt = blockIndices[idx];
-      const px = newPt % gridCount, py = floor(newPt / gridCount);
-
-      const newPtVal = map.get(px, py)[3];
+      const { newPt, newPtVal, idx } = sampleRandomBlock();
 
       if (newPtVal >= alphaCutoff) {
         blockIndices.splice(idx, 1);
         continue;
       }
 
-      if (newPtVal < ptVal) {
-        pt = newPt;
-        ptVal = newPtVal;
-      }
+      if (newPtVal < ptVal) { pt = newPt; ptVal = newPtVal; }
     }
 
     if (pt != null) {
@@ -130,15 +122,12 @@ function draw() {
       addBlock(px, py);
     }
   }
-  // }
-  // if (frameCount == 120) {
-  //   addBlock = () => {};
-  // }
 
   //---------- Debug ---------//
-  noStroke();
-  fill(255, 0, 0);
-  rect(random(0, 40), random(0, 40), 10, 10);
+  // noStroke();
+  // fill(255, 0, 0);
+  // rect(random(0, 40), random(0, 40), 10, 10);
+  // text(hour + ":" + minute + ":" + second + ":" + round(frameRate()), 1, 2);
 }
 
 //---------- Particle System ----------//
@@ -181,7 +170,7 @@ function execAnim(anim) {
   rectMode(CENTER);
 
   // Implosion
-  if (frame < part1End) {
+  if (!quickPlay && frame < part1End) {
     const t = frame/(part1End-1);
     let size = (1 - t);
     size *= blockSize * implScale;
@@ -195,12 +184,12 @@ function execAnim(anim) {
   }
   // Particles + Draw pixel
   else if (frame == part2Start) {
-    spawnParticles(20, bx, by);
+    if (!quickPlay) spawnParticles(20, bx, by);
     map.fill(255, alpha);
     map.rect(bx, by, 1, 1);
   }
   // Explosion
-  else if (frame > part2Start) {
+  else if (!quickPlay && frame > part2Start) {
     const t = (frame - part2Start)/(totFrames-part1End);
     // let size = (1/(1.01-t) - 1) * blockSize * explScale * 0.5;
     let size = (t) * blockSize * explScale;
@@ -226,6 +215,19 @@ function addBlock(bx, by) {
   console.log(totAdded);
 }
 
+function sampleRandomBlock() {
+  const idx = floor(random(0, blockIndices.length));
+  const newPt = blockIndices[idx];
+  const px = newPt % gridCount, py = floor(newPt / gridCount);
+  const newPtVal = map.get(px, py)[3];
+  return { newPt, newPtVal, idx };
+}
+
+
 function mousePressed() {
   addBlock(floor(mouseX/blockStep), floor(mouseY/blockStep))
+}
+
+function keyPressed() {
+  if (key == ' ') quickPlay = !quickPlay;
 }
